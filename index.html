@@ -8,11 +8,11 @@
     <style>
         .tab-content { display: none; }
         .tab-content.active { display: block; }
-        .status-open { color: #10b981; }
+        .status-open { color: #10b981; font-weight: bold; }
         .status-closed { color: #6b7280; }
-        .risk-rendah { background: #dcfce7; color: #166534; }
-        .risk-sedang { background: #fef3c7; color: #92400e; }
-        .risk-tinggi { background: #fee2e2; color: #991b1b; }
+        .risk-rendah { background: #dcfce7; color: #166534; padding: 4px 8px; border-radius: 4px; }
+        .risk-sedang { background: #fef3c7; color: #92400e; padding: 4px 8px; border-radius: 4px; }
+        .risk-tinggi { background: #fee2e2; color: #991b1b; padding: 4px 8px; border-radius: 4px; }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -185,11 +185,12 @@
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">No. HP</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hasil</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Confidence</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Waktu Hasil</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody id="historyBody" class="divide-y divide-gray-200">
-                                    <tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">Loading...</td></tr>
+                                    <tr><td colspan="7" class="px-6 py-4 text-center text-gray-500">Loading...</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -347,6 +348,28 @@
             }
         }
 
+        async function closeSessionFromHistory(sessionId) {
+            if (!confirm('Tutup sesi ini?')) return;
+            
+            try {
+                const encodedSessionId = encodeURIComponent(sessionId);
+                const response = await fetch(`${CONFIG.API_ENDPOINT}/session/${encodedSessionId}/finish`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                
+                if (response.ok) {
+                    alert('Sesi berhasil ditutup!');
+                    loadHistory();
+                } else {
+                    const data = await response.json();
+                    alert('Gagal: ' + (data.error || 'Unknown error'));
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
         function startResultPolling() {
             if (!currentSessionId) {
                 document.getElementById('noActiveSession').classList.remove('hidden');
@@ -395,14 +418,14 @@
 
         async function loadHistory() {
             const tbody = document.getElementById('historyBody');
-            tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">Loading...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-4 text-center text-gray-500">Loading...</td></tr>';
             
             try {
                 const response = await fetch(`${CONFIG.API_ENDPOINT}/sessions`);
                 const sessions = await response.json();
                 
                 if (sessions.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">Belum ada data</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-4 text-center text-gray-500">Belum ada data</td></tr>';
                     return;
                 }
                 
@@ -416,20 +439,24 @@
                         </td>
                         <td class="px-6 py-4 text-sm">
                             ${session.lastResultCategory ? 
-                                `<span class="px-2 py-1 rounded text-xs risk-${session.lastResultCategory.toLowerCase()}">${session.lastResultCategory}</span>` : 
+                                `<span class="risk-${session.lastResultCategory.toLowerCase()}">${session.lastResultCategory}</span>` : 
                                 '-'}
                         </td>
-                        <td class="px-6 py-4 text-sm">${session.lastResultTimestamp || '-'}</td>
+                        <td class="px-6 py-4 text-sm">${session.lastResultTimestamp ? new Date(session.lastResultTimestamp).toLocaleString('id-ID') : '-'}</td>
+                        <td class="px-6 py-4 text-sm">
+                            ${session.status === 'OPEN' ? 
+                                `<button onclick="closeSessionFromHistory('${session.PK}')" class="bg-red-500 text-white px-3 py-1 rounded text-xs hover:bg-red-600">Tutup</button>` : 
+                                '-'}
+                        </td>
                     </tr>
                 `).join('');
             } catch (error) {
-                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-red-500">Error loading data</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-4 text-center text-red-500">Error loading data</td></tr>';
             }
         }
 
         function startAdminMonitoring() {
             checkSystemStatus();
-            loadHistory();
             adminPollingInterval = setInterval(checkSystemStatus, 10000);
         }
 
