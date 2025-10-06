@@ -1,510 +1,937 @@
-/*
- * SUNSTONE ESP32 - Lung Health Monitoring
- * 
- * Hardware:
- * - ESP32 DevKit
- * - OLED Display SSD1306 (I2C)
- * - MG811 CO2 Sensor
- * - MQ7 CO Sensor
- * - MQ3 Alcohol Sensor
- * - MQ135 Air Quality Sensor
- * - Rocker Switch
- * 
- * Libraries Required:
- * - WiFiManager
- * - PubSubClient (MQTT)
- * - Adafruit_SSD1306
- * - ArduinoJson
- */
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SUNSTONE - Lung Health Monitoring System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-#include <WiFi.h>
-#include <WiFiClientSecure.h>
-#include <PubSubClient.h>
-#include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
-#include <ArduinoJson.h>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
 
-// ============================================
-// CONFIGURATION (from sunstone_config.h)
-// ============================================
-#define AWS_IOT_ENDPOINT "a2vg3urkg4mky6-ats.iot.ap-southeast-1.amazonaws.com"
-#define THING_NAME "ESP01"
-#define WIFI_SSID "SUNSTONE"
-#define WIFI_PASS "your_password_here"
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
 
-#define TOPIC_PUBLISH "devices/ESP01/sensor"
-#define TOPIC_RESULT "devices/ESP01/result"
-#define TOPIC_SESSION_CLOSE "devices/ESP01/session/close"
+        /* Header */
+        .header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
 
-// ============================================
-// PINS
-// ============================================
-#define PIN_MG811 34    // CO2
-#define PIN_MQ7 35      // CO
-#define PIN_MQ3 32      // Alcohol
-#define PIN_MQ135 33    // Air Quality
-#define PIN_ROCKER 25   // Rocker Switch
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
 
-// OLED Display
-#define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 64
-#define OLED_RESET -1
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+        .logo {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 20px;
+        }
 
-// ============================================
-// AWS IoT CERTIFICATES
-// ============================================
-// Copy content dari ESP01-certificate.pem
-const char* AWS_CERT = R"EOF(
------BEGIN CERTIFICATE-----
-PASTE_YOUR_CERTIFICATE_HERE
------END CERTIFICATE-----
-)EOF";
+        .logo-text h1 {
+            color: #764ba2;
+            font-size: 24px;
+            font-weight: 700;
+        }
 
-// Copy content dari ESP01-private.key
-const char* AWS_PRIVATE_KEY = R"EOF(
------BEGIN RSA PRIVATE KEY-----
-PASTE_YOUR_PRIVATE_KEY_HERE
------END RSA PRIVATE KEY-----
-)EOF";
+        .logo-text p {
+            color: #666;
+            font-size: 12px;
+        }
 
-// Amazon Root CA 1
-const char* AWS_ROOT_CA = R"EOF(
------BEGIN CERTIFICATE-----
-MIIDQTCCAimgAwIBAgITBmyfz5m/jAo54vB4ikPmljZbyjANBgkqhkiG9w0BAQsF
-ADA5MQswCQYDVQQGEwJVUzEPMA0GA1UEChMGQW1hem9uMRkwFwYDVQQDExBBbWF6
-b24gUm9vdCBDQSAxMB4XDTE1MDUyNjAwMDAwMFoXDTM4MDExNzAwMDAwMFowOTEL
-MAkGA1UEBhMCVVMxDzANBgNVBAoTBkFtYXpvbjEZMBcGA1UEAxMQQW1hem9uIFJv
-b3QgQ0EgMTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBALJ4gHHKeNXj
-ca9HgFB0fW7Y14h29Jlo91ghYPl0hAEvrAIthtOgQ3pOsqTQNroBvo3bSMgHFzZM
-9O6II8c+6zf1tRn4SWiw3te5djgdYZ6k/oI2peVKVuRF4fn9tBb6dNqcmzU5L/qw
-IFAGbHrQgLKm+a/sRxmPUDgH3KKHOVj4utWp+UhnMJbulHheb4mjUcAwhmahRWa6
-VOujw5H5SNz/0egwLX0tdHA114gk957EWW67c4cX8jJGKLhD+rcdqsq08p8kDi1L
-93FcXmn/6pUCyziKrlA4b9v7LWIbxcceVOF34GfID5yHI9Y/QCB/IIDEgEw+OyQm
-jgSubJrIqg0CAwEAAaNCMEAwDwYDVR0TAQH/BAUwAwEB/zAOBgNVHQ8BAf8EBAMC
-AYYwHQYDVR0OBBYEFIQYzIU07LwMlJQuCFmcx7IQTgoIMA0GCSqGSIb3DQEBCwUA
-A4IBAQCY8jdaQZChGsV2USggNiMOruYou6r4lK5IpDB/G/wkjUu0yKGX9rbxenDI
-U5PMCCjjmCXPI6T53iHTfIUJrU6adTrCC2qJeHZERxhlbI1Bjjt/msv0tadQ1wUs
-N+gDS63pYaACbvXy8MWy7Vu33PqUXHeeE6V/Uq2V8viTO96LXFvKWlJbYK8U90vv
-o/ufQJVtMVT8QtPHRh8jrdkPSHCa2XV4cdFyQzR1bldZwgJcJmApzyMZFo6IQ6XU
-5MsI+yMRQ+hDKXJioaldXgjUkK642M4UwtBV8ob2xJNDd2ZhwLnoQdeXeGADbkpy
-rqXRfboQnoZsG4q5WTP468SQvvG5
------END CERTIFICATE-----
-)EOF";
+        .nav-tabs {
+            display: flex;
+            gap: 10px;
+        }
 
-// ============================================
-// GLOBALS
-// ============================================
-WiFiClientSecure wifiClient;
-PubSubClient mqttClient(wifiClient);
+        .nav-btn {
+            padding: 10px 25px;
+            background: #f0f0f0;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #666;
+            transition: all 0.3s;
+        }
 
-unsigned long lastPublish = 0;
-unsigned long publishInterval = 2000; // 2 seconds
+        .nav-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
 
-bool sessionActive = false;
-bool testRunning = false;
-String latestResult = "";
-float latestConfidence = 0;
+        .nav-btn:hover {
+            transform: translateY(-2px);
+        }
 
-// Sensor calibration offsets
-int offsetMG811 = 0;
-int offsetMQ7 = 0;
-int offsetMQ3 = 0;
-int offsetMQ135 = 0;
+        /* Pages */
+        .page {
+            display: none;
+        }
 
-// ============================================
-// SETUP
-// ============================================
-void setup() {
-  Serial.begin(115200);
-  delay(1000);
-  
-  Serial.println("\n=================================");
-  Serial.println("SUNSTONE - Lung Health Monitor");
-  Serial.println("=================================\n");
+        .page.active {
+            display: block;
+        }
 
-  // Initialize pins
-  pinMode(PIN_ROCKER, INPUT_PULLUP);
-  pinMode(PIN_MG811, INPUT);
-  pinMode(PIN_MQ7, INPUT);
-  pinMode(PIN_MQ3, INPUT);
-  pinMode(PIN_MQ135, INPUT);
+        /* Dashboard Page */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
 
-  // Initialize OLED
-  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
-    Serial.println("OLED init failed!");
-    while(1);
-  }
-  
-  display.clearDisplay();
-  displayBootScreen();
-  
-  // WiFi Setup
-  Serial.println("Connecting to WiFi...");
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
-  
-  int wifiAttempts = 0;
-  while (WiFi.status() != WL_CONNECTED && wifiAttempts < 20) {
-    delay(500);
-    Serial.print(".");
-    wifiAttempts++;
-  }
-  
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("\nWiFi connected!");
-    Serial.print("IP: ");
-    Serial.println(WiFi.localIP());
-  } else {
-    Serial.println("\nWiFi failed! Starting AP mode...");
-    WiFi.softAP("SUNSTONE", "12345678");
-    displayMessage("WiFi Setup Mode", "Connect to SUNSTONE");
-    while(1) delay(1000);
-  }
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
 
-  // AWS IoT Setup
-  wifiClient.setCACert(AWS_ROOT_CA);
-  wifiClient.setCertificate(AWS_CERT);
-  wifiClient.setPrivateKey(AWS_PRIVATE_KEY);
-  
-  mqttClient.setServer(AWS_IOT_ENDPOINT, 8883);
-  mqttClient.setCallback(mqttCallback);
-  mqttClient.setBufferSize(512);
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
 
-  // Connect to MQTT
-  connectToMQTT();
+        .card-title {
+            color: #764ba2;
+            font-size: 20px;
+            font-weight: 700;
+        }
 
-  // Sensor burn-in
-  displayMessage("Burning Sensors", "Wait 30s...");
-  Serial.println("Sensor burn-in 30s...");
-  
-  for(int i = 30; i > 0; i--) {
-    display.clearDisplay();
-    display.setTextSize(1);
-    display.setTextColor(SSD1306_WHITE);
-    display.setCursor(0, 0);
-    display.println("Burning Sensors");
-    display.println();
-    display.setTextSize(2);
-    display.print("  ");
-    display.print(i);
-    display.println("s");
-    display.display();
-    delay(1000);
-  }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
 
-  // Calibrate sensors (baseline)
-  calibrateSensors();
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
 
-  // Ready
-  displayMessage("System Ready", "Press button");
-  Serial.println("System ready. Press rocker to start.");
-}
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
 
-// ============================================
-// LOOP
-// ============================================
-void loop() {
-  // Maintain MQTT connection
-  if (!mqttClient.connected()) {
-    connectToMQTT();
-  }
-  mqttClient.loop();
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
 
-  // Check rocker switch
-  if (digitalRead(PIN_ROCKER) == LOW && !testRunning) {
-    startTest();
-  }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
 
-  // Publish sensor data if test running
-  if (testRunning && millis() - lastPublish > publishInterval) {
-    publishSensorData();
-    lastPublish = millis();
-  }
+        .form-group {
+            margin-bottom: 15px;
+        }
 
-  // Update OLED with live sensor values
-  if (!testRunning) {
-    displayIdleScreen();
-  }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
 
-  delay(100);
-}
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
 
-// ============================================
-// MQTT FUNCTIONS
-// ============================================
-void connectToMQTT() {
-  Serial.print("Connecting to AWS IoT...");
-  
-  int attempts = 0;
-  while (!mqttClient.connected() && attempts < 3) {
-    if (mqttClient.connect(THING_NAME)) {
-      Serial.println(" Connected!");
-      
-      // Subscribe to result and session topics
-      mqttClient.subscribe(TOPIC_RESULT);
-      mqttClient.subscribe(TOPIC_SESSION_CLOSE);
-      
-      Serial.println("Subscribed to topics");
-    } else {
-      Serial.print(" Failed, rc=");
-      Serial.println(mqttClient.state());
-      delay(2000);
-      attempts++;
-    }
-  }
-}
+        .form-group input:focus {
+            outline: none;
+            border-color: #764ba2;
+        }
 
-void mqttCallback(char* topic, byte* payload, unsigned int length) {
-  Serial.print("Message on topic: ");
-  Serial.println(topic);
-  
-  // Parse JSON payload
-  StaticJsonDocument<256> doc;
-  deserializeJson(doc, payload, length);
-  
-  String topicStr = String(topic);
-  
-  if (topicStr == TOPIC_RESULT) {
-    // Result from ML inference
-    String category = doc["category"];
-    float confidence = doc["confidence"];
-    
-    latestResult = category;
-    latestConfidence = confidence;
-    
-    displayResult(category, confidence);
-    
-    Serial.print("Result: ");
-    Serial.print(category);
-    Serial.print(" (");
-    Serial.print(confidence);
-    Serial.println("%)");
-    
-  } else if (topicStr == TOPIC_SESSION_CLOSE) {
-    // Session closed
-    sessionActive = false;
-    testRunning = false;
-    
-    displayMessage("Session Closed", "Thank You!");
-    Serial.println("Session closed by backend");
-    
-    delay(3000);
-  }
-}
+        .status-widget {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
 
-// ============================================
-// SENSOR FUNCTIONS
-// ============================================
-void calibrateSensors() {
-  Serial.println("Calibrating sensors...");
-  
-  int samples = 10;
-  long sumMG811 = 0, sumMQ7 = 0, sumMQ3 = 0, sumMQ135 = 0;
-  
-  for(int i = 0; i < samples; i++) {
-    sumMG811 += analogRead(PIN_MG811);
-    sumMQ7 += analogRead(PIN_MQ7);
-    sumMQ3 += analogRead(PIN_MQ3);
-    sumMQ135 += analogRead(PIN_MQ135);
-    delay(100);
-  }
-  
-  offsetMG811 = sumMG811 / samples;
-  offsetMQ7 = sumMQ7 / samples;
-  offsetMQ3 = sumMQ3 / samples;
-  offsetMQ135 = sumMQ135 / samples;
-  
-  Serial.println("Calibration complete");
-}
+        .status-widget h3 {
+            font-size: 16px;
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
 
-void readSensors(int &mg811, int &mq7, int &mq3, int &mq135) {
-  // Read raw analog values
-  mg811 = analogRead(PIN_MG811);
-  mq7 = analogRead(PIN_MQ7);
-  mq3 = analogRead(PIN_MQ3);
-  mq135 = analogRead(PIN_MQ135);
-  
-  // Apply calibration (optional)
-  // mg811 = mg811 - offsetMG811 + 300;
-  // ... etc
-}
+        .status-widget .status-value {
+            font-size: 28px;
+            font-weight: 700;
+        }
 
-void publishSensorData() {
-  int mg811, mq7, mq3, mq135;
-  readSensors(mg811, mq7, mq3, mq135);
-  
-  // Create JSON payload
-  StaticJsonDocument<256> doc;
-  doc["device_id"] = THING_NAME;
-  doc["timestamp"] = getISO8601Time();
-  
-  JsonObject sensors = doc.createNestedObject("sensors");
-  sensors["raw_mg811"] = mg811;
-  sensors["raw_mq7"] = mq7;
-  sensors["raw_mq3"] = mq3;
-  sensors["raw_mq135"] = mq135;
-  
-  char buffer[256];
-  serializeJson(doc, buffer);
-  
-  // Publish to MQTT
-  if (mqttClient.publish(TOPIC_PUBLISH, buffer)) {
-    Serial.print("Published: ");
-    Serial.println(buffer);
-    
-    displayTestScreen(mg811, mq7, mq3, mq135);
-  } else {
-    Serial.println("Publish failed!");
-  }
-}
+        .device-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
 
-String getISO8601Time() {
-  // Simple timestamp (you can use NTP for accurate time)
-  unsigned long ms = millis();
-  char buffer[32];
-  sprintf(buffer, "2025-10-06T%02d:%02d:%02dZ", 
-          (int)((ms/1000)/3600) % 24,
-          (int)((ms/1000)/60) % 60,
-          (int)(ms/1000) % 60);
-  return String(buffer);
-}
+        .device-item {
+            padding: 15px;
+            background: #f9fafb;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
 
-// ============================================
-// TEST CONTROL
-// ============================================
-void startTest() {
-  testRunning = true;
-  sessionActive = true;
-  
-  Serial.println("\n>>> TEST STARTED <<<\n");
-  
-  displayMessage("Starting Test", "Breathe...");
-  delay(2000);
-}
+        .device-status {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #10b981;
+            animation: pulse 2s infinite;
+        }
 
-// ============================================
-// DISPLAY FUNCTIONS
-// ============================================
-void displayBootScreen() {
-  display.clearDisplay();
-  display.setTextSize(2);
-  display.setTextColor(SSD1306_WHITE);
-  display.setCursor(10, 20);
-  display.println("SUNSTONE");
-  display.setTextSize(1);
-  display.setCursor(20, 45);
-  display.println("Booting...");
-  display.display();
-  delay(2000);
-}
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
 
-void displayMessage(const char* title, const char* msg) {
-  display.clearDisplay();
-  display.setTextSize(1);
-  display.setTextColor(SSD1306_WHITE);
-  
-  display.setCursor(0, 10);
-  display.println(title);
-  display.drawLine(0, 20, 128, 20, SSD1306_WHITE);
-  
-  display.setCursor(0, 30);
-  display.println(msg);
-  
-  display.display();
-}
+        /* Session Page */
+        .session-header {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
 
-void displayIdleScreen() {
-  static unsigned long lastUpdate = 0;
-  if (millis() - lastUpdate < 500) return;
-  lastUpdate = millis();
-  
-  int mg811, mq7, mq3, mq135;
-  readSensors(mg811, mq7, mq3, mq135);
-  
-  display.clearDisplay();
-  display.setTextSize(1);
-  display.setTextColor(SSD1306_WHITE);
-  
-  // WiFi status
-  display.setCursor(110, 0);
-  if (WiFi.status() == WL_CONNECTED) {
-    display.print("W");
-  }
-  
-  // Title
-  display.setCursor(0, 0);
-  display.println("READY");
-  display.drawLine(0, 10, 128, 10, SSD1306_WHITE);
-  
-  // Sensor values (compact)
-  display.setCursor(0, 15);
-  display.print("CO2:");
-  display.print(mg811);
-  display.print(" CO:");
-  display.println(mq7);
-  
-  display.setCursor(0, 25);
-  display.print("ALC:");
-  display.print(mq3);
-  display.print(" AIR:");
-  display.println(mq135);
-  
-  display.setCursor(0, 50);
-  display.println("Press to start");
-  
-  display.display();
-}
+        .patient-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
 
-void displayTestScreen(int mg811, int mq7, int mq3, int mq135) {
-  display.clearDisplay();
-  display.setTextSize(1);
-  display.setTextColor(SSD1306_WHITE);
-  
-  display.setCursor(0, 0);
-  display.println("TESTING...");
-  display.drawLine(0, 10, 128, 10, SSD1306_WHITE);
-  
-  display.setCursor(0, 15);
-  display.print("CO2: ");
-  display.println(mg811);
-  
-  display.setCursor(0, 25);
-  display.print("CO:  ");
-  display.println(mq7);
-  
-  display.setCursor(0, 35);
-  display.print("ALC: ");
-  display.println(mq3);
-  
-  display.setCursor(0, 45);
-  display.print("AIR: ");
-  display.println(mq135);
-  
-  display.display();
-}
+        .info-item {
+            padding: 10px;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
 
-void displayResult(String category, float confidence) {
-  testRunning = false;
-  
-  display.clearDisplay();
-  display.setTextSize(1);
-  display.setTextColor(SSD1306_WHITE);
-  
-  display.setCursor(0, 0);
-  display.println("RESULT");
-  display.drawLine(0, 10, 128, 10, SSD1306_WHITE);
-  
-  display.setTextSize(2);
-  display.setCursor(10, 20);
-  display.println(category);
-  
-  display.setTextSize(1);
-  display.setCursor(10, 45);
-  display.print("Conf: ");
-  display.print(confidence, 1);
-  display.println("%");
-  
-  display.display();
-}
+        .info-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .sensor-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .sensor-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .sensor-name {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .sensor-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #764ba2;
+        }
+
+        .mini-chart {
+            height: 50px;
+            margin-top: 10px;
+            background: linear-gradient(to top, rgba(102, 126, 234, 0.2), transparent);
+            border-radius: 4px;
+        }
+
+        .result-panel {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .result-category {
+            font-size: 48px;
+            font-weight: 700;
+            margin: 15px 0;
+        }
+
+        .result-confidence {
+            font-size: 24px;
+            opacity: 0.9;
+        }
+
+        /* History Table */
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .history-table th {
+            background: #f9fafb;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #764ba2;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .history-table td {
+            padding: 15px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .history-table tr:hover {
+            background: #f9fafb;
+        }
+
+        .badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-danger {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge-info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        /* Admin Monitoring */
+        .log-container {
+            background: #1f2937;
+            color: #10b981;
+            padding: 20px;
+            border-radius: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-left: 3px solid #10b981;
+            padding-left: 10px;
+        }
+
+        .log-entry.error {
+            border-left-color: #ef4444;
+            color: #ef4444;
+        }
+
+        .log-entry.warning {
+            border-left-color: #f59e0b;
+            color: #f59e0b;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #764ba2;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .search-box {
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            width: 300px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .sensor-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo-section">
+                <div class="logo">S</div>
+                <div class="logo-text">
+                    <h1>SUNSTONE</h1>
+                    <p>Lung Health Monitoring System</p>
+                </div>
+            </div>
+            <div class="nav-tabs">
+                <button class="nav-btn active" onclick="showPage('dashboard')">Dashboard</button>
+                <button class="nav-btn" onclick="showPage('history')">Riwayat</button>
+                <button class="nav-btn" onclick="showPage('admin')">Admin</button>
+            </div>
+        </div>
+
+        <!-- Dashboard Page -->
+        <div id="dashboard" class="page active">
+            <div class="dashboard-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Buat Sesi Baru</h2>
+                    </div>
+                    <form id="sessionForm" onsubmit="createSession(event)">
+                        <div class="form-group">
+                            <label>Nama Pasien</label>
+                            <input type="text" id="patientName" placeholder="Masukkan nama pasien" required>
+                        </div>
+                        <div class="form-group">
+                            <label>No. HP</label>
+                            <input type="tel" id="patientPhone" placeholder="08xxxxxxxxxx" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Device ID</label>
+                            <select id="deviceId" class="form-group input" style="width:100%; padding:12px; border:2px solid #e5e7eb; border-radius:8px;">
+                                <option value="ESP01">ESP01</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width:100%; margin-top:10px;">
+                            Mulai Sesi
+                        </button>
+                    </form>
+                </div>
+
+                <div>
+                    <div class="status-widget">
+                        <h3>Status Sistem</h3>
+                        <div class="status-value" id="systemStatus">Ready</div>
+                    </div>
+
+                    <div class="card">
+                        <h3 class="card-title" style="margin-bottom:15px;">Device Aktif</h3>
+                        <div class="device-list">
+                            <div class="device-item">
+                                <div>
+                                    <strong>ESP01</strong>
+                                    <p style="font-size:12px; color:#666; margin-top:5px;">IoT Sensor Device</p>
+                                </div>
+                                <div class="device-status"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Session Monitoring Page -->
+        <div id="session" class="page">
+            <div class="session-header">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h2 class="card-title">Monitoring Sesi</h2>
+                    <div>
+                        <button class="btn btn-danger" onclick="finishSession()">Tutup Sesi</button>
+                    </div>
+                </div>
+                <div class="patient-info" id="patientInfo">
+                    <!-- Patient info will be populated here -->
+                </div>
+            </div>
+
+            <div class="sensor-grid" id="sensorGrid">
+                <!-- Sensor cards will be populated here -->
+            </div>
+
+            <div id="resultPanel" style="display:none;">
+                <div class="result-panel">
+                    <h3>Hasil Analisis AI</h3>
+                    <div class="result-category" id="resultCategory">-</div>
+                    <div class="result-confidence" id="resultConfidence">Confidence: -</div>
+                    <p style="margin-top:20px; opacity:0.9;">Model: ONNX Runtime (Browser)</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Page -->
+        <div id="history" class="page">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Riwayat Pasien</h2>
+                    <button class="btn btn-primary" onclick="showPage('dashboard')">+ Sesi Baru</button>
+                </div>
+                <input type="text" class="search-box" id="searchBox" placeholder="Cari nama pasien..." onkeyup="filterHistory()">
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th>Tanggal</th>
+                            <th>Nama</th>
+                            <th>No HP</th>
+                            <th>Status</th>
+                            <th>Hasil</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTable">
+                        <tr>
+                            <td colspan="6" style="text-align:center; padding:40px; color:#666;">
+                                <div class="loading" style="margin:0 auto 10px;"></div>
+                                <div>Memuat data...</div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Admin Monitoring Page -->
+        <div id="admin" class="page">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">System Monitoring</h2>
+                    <button class="btn btn-success" onclick="clearLogs()">Clear Logs</button>
+                </div>
+                <div class="log-container" id="logContainer">
+                    <div class="log-entry">[SYSTEM] Monitoring started...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+    <script>
+        // Configuration
+        const CONFIG = {
+            apiEndpoint: 'https://dd23gtb2nc.execute-api.ap-southeast-1.amazonaws.com',
+            modelUrl: 'https://d1mw90se9yxe88.cloudfront.net/sunstone_model.onnx',
+            modelUrlBackup: 'https://sunstone-model-536697242709.s3.ap-southeast-1.amazonaws.com/sunstone_model.onnx',
+            pollInterval: 2000
+        };
+
+        // Global State
+        let currentSession = null;
+        let pollingInterval = null;
+        let onnxSession = null;
+        let sensorHistory = [];
+
+        // Navigation
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            
+            document.getElementById(pageId).classList.add('active');
+            event.target.classList.add('active');
+
+            if (pageId === 'history') loadHistory();
+            if (pageId === 'admin') addLog('[SYSTEM] Admin panel accessed');
+        }
+
+        // Create Session
+        async function createSession(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('patientName').value;
+            const phone = document.getElementById('patientPhone').value;
+            const deviceId = document.getElementById('deviceId').value;
+
+            addLog(`[API] Creating session for ${name}...`);
+
+            try {
+                const response = await fetch(`${CONFIG.apiEndpoint}/session`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, phone, device_id: deviceId })
+                });
+
+                const data = await response.json();
+                
+                if (data.id) {
+                    currentSession = { ...data, name, phone, deviceId };
+                    addLog(`[SUCCESS] Session created: ${data.id}`, 'success');
+                    
+                    // Show session page
+                    showPage('session');
+                    displayPatientInfo();
+                    startPolling();
+                    loadModel();
+                } else {
+                    addLog(`[ERROR] Failed to create session: ${JSON.stringify(data)}`, 'error');
+                    alert('Gagal membuat sesi. Cek log admin.');
+                }
+            } catch (error) {
+                addLog(`[ERROR] Network error: ${error.message}`, 'error');
+                alert('Error koneksi ke server');
+            }
+        }
+
+        // Display Patient Info
+        function displayPatientInfo() {
+            const html = `
+                <div class="info-item">
+                    <div class="info-label">Nama Pasien</div>
+                    <div class="info-value">${currentSession.name}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">No. HP</div>
+                    <div class="info-value">${currentSession.phone}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Session ID</div>
+                    <div class="info-value">${currentSession.id}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Device</div>
+                    <div class="info-value">${currentSession.deviceId}</div>
+                </div>
+            `;
+            document.getElementById('patientInfo').innerHTML = html;
+        }
+
+        // Load ONNX Model
+        async function loadModel() {
+            try {
+                addLog('[ML] Loading ONNX model...');
+                onnxSession = await ort.InferenceSession.create(CONFIG.modelUrl);
+                addLog('[ML] Model loaded successfully', 'success');
+            } catch (error) {
+                addLog(`[ML] Failed from CDN, trying backup...`, 'warning');
+                try {
+                    onnxSession = await ort.InferenceSession.create(CONFIG.modelUrlBackup);
+                    addLog('[ML] Model loaded from backup', 'success');
+                } catch (err) {
+                    addLog(`[ERROR] Model load failed: ${err.message}`, 'error');
+                }
+            }
+        }
+
+        // Start Polling
+        function startPolling() {
+            if (pollingInterval) clearInterval(pollingInterval);
+            
+            pollingInterval = setInterval(async () => {
+                if (!currentSession) return;
+
+                try {
+                    // Get latest sensor data
+                    const response = await fetch(
+                        `${CONFIG.apiEndpoint}/session/${currentSession.id}/sensors?limit=1`
+                    );
+                    const data = await response.json();
+
+                    if (data.sensors && data.sensors.length > 0) {
+                        const latest = data.sensors[0];
+                        updateSensorDisplay(latest.sensors);
+                        sensorHistory.push(latest);
+
+                        // Run inference if model loaded
+                        if (onnxSession && sensorHistory.length >= 3) {
+                            runInference(latest.sensors);
+                        }
+                    }
+                } catch (error) {
+                    addLog(`[ERROR] Polling failed: ${error.message}`, 'error');
+                }
+            }, CONFIG.pollInterval);
+
+            addLog('[SYSTEM] Polling started');
+        }
+
+        // Update Sensor Display
+        function updateSensorDisplay(sensors) {
+            const sensorNames = {
+                raw_mg811: 'CO2 (MG811)',
+                raw_mq7: 'CO (MQ7)',
+                raw_mq3: 'Alkohol (MQ3)',
+                raw_mq135: 'Gas (MQ135)'
+            };
+
+            let html = '';
+            for (const [key, value] of Object.entries(sensors)) {
+                html += `
+                    <div class="sensor-card">
+                        <div class="sensor-name">${sensorNames[key] || key}</div>
+                        <div class="sensor-value">${value}</div>
+                        <div class="mini-chart"></div>
+                    </div>
+                `;
+            }
+            document.getElementById('sensorGrid').innerHTML = html;
+        }
+
+        // Run ML Inference
+        async function runInference(sensors) {
+            try {
+                addLog('[ML] Running inference...');
+
+                // Prepare input tensor [raw_mg811, raw_mq7, raw_mq3, raw_mq135]
+                const inputData = new Float32Array([
+                    sensors.raw_mg811,
+                    sensors.raw_mq7,
+                    sensors.raw_mq3,
+                    sensors.raw_mq135
+                ]);
+
+                const tensor = new ort.Tensor('float32', inputData, [1, 4]);
+                const feeds = { float_input: tensor };
+                
+                const results = await onnxSession.run(feeds);
+                const output = results.output.data;
+
+                // Get prediction
+                const maxIndex = output.indexOf(Math.max(...output));
+                const categories = ['Rendah', 'Sedang', 'Tinggi'];
+                const category = categories[maxIndex];
+                const confidence = (output[maxIndex] * 100).toFixed(2);
+
+                addLog(`[ML] Prediction: ${category} (${confidence}%)`, 'success');
+
+                // Display result
+                document.getElementById('resultCategory').textContent = category;
+                document.getElementById('resultConfidence').textContent = `Confidence: ${confidence}%`;
+                document.getElementById('resultPanel').style.display = 'block';
+
+                // Send result to backend
+                await fetch(`${CONFIG.apiEndpoint}/session/${currentSession.id}/result`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        category,
+                        confidence: parseFloat(confidence),
+                        sensor_values: [sensors.raw_mg811, sensors.raw_mq7, sensors.raw_mq3, sensors.raw_mq135],
+                        timestamp: new Date().toISOString(),
+                        device_id: currentSession.deviceId
+                    })
+                });
+
+                addLog('[API] Result sent to backend', 'success');
+
+            } catch (error) {
+                addLog(`[ERROR] Inference failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Finish Session
+        async function finishSession() {
+            if (!currentSession) return;
+            
+            if (!confirm('Tutup sesi ini?')) return;
+
+            try {
+                addLog('[API] Closing session...');
+                
+                await fetch(`${CONFIG.apiEndpoint}/session/${currentSession.id}/finish`, {
+                    method: 'POST'
+                });
+
+                addLog('[SUCCESS] Session closed', 'success');
+                
+                clearInterval(pollingInterval);
+                currentSession = null;
+                sensorHistory = [];
+                
+                showPage('dashboard');
+                document.getElementById('sessionForm').reset();
+                
+            } catch (error) {
+                addLog(`[ERROR] Failed to close session: ${error.message}`, 'error');
+            }
+        }
+
+        // Load History
+        async function loadHistory() {
+            try {
+                const response = await fetch(`${CONFIG.apiEndpoint}/history`);
+                const data = await response.json();
+
+                const tbody = document.getElementById('historyTable');
+                
+                if (data.history && data.history.length > 0) {
+                    tbody.innerHTML = data.history.map(h => `
+                        <tr>
+                            <td>${new Date(h.sessionStart || Date.now()).toLocaleString('id-ID')}</td>
+                            <td>${h.name}</td>
+                            <td>${h.phone}</td>
+                            <td>
+                                <span class="badge ${h.status === 'OPEN' ? 'badge-info' : 'badge-success'}">
+                                    ${h.status}
+                                </span>
+                            </td>
+                            <td>
+                                ${h.lastResultCategory ? 
+                                    `<span class="badge badge-${getBadgeClass(h.lastResultCategory)}">
+                                        ${h.lastResultCategory}
+                                    </span>` : '-'}
+                            </td>
+                            <td>
+                                ${h.status === 'OPEN' ? 
+                                    `<button class="btn btn-danger btn-sm" onclick="closeSessionFromHistory('${h.id}')">Tutup</button>` :
+                                    `<button class="btn btn-success btn-sm" onclick="viewDetails('${h.id}')">Detail</button>`
+                                }
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:40px; color:#666;">Belum ada data</td></tr>';
+                }
+
+                addLog(`[API] Loaded ${data.history?.length || 0} history records`);
+            } catch (error) {
+                addLog(`[ERROR] Failed to load history: ${error.message}`, 'error');
+            }
+        }
+
+        function getBadgeClass(category) {
+            if (category === 'Tinggi') return 'danger';
+            if (category === 'Sedang') return 'warning';
+            return 'success';
+        }
+
+        async function closeSessionFromHistory(sessionId) {
+            if (!confirm('Tutup sesi ini?')) return;
+
+            try {
+                await fetch(`${CONFIG.apiEndpoint}/session/${sessionId}/finish`, {
+                    method: 'POST'
+                });
+                addLog(`[API] Session ${sessionId} closed from history`, 'success');
+                loadHistory();
+            } catch (error) {
+                addLog(`[ERROR] Failed to close: ${error.message}`, 'error');
+            }
+        }
+
+        function viewDetails(sessionId) {
+            alert(`Detail untuk session: ${sessionId}\n\nFitur ini akan menampilkan grafik lengkap dan laporan PDF.`);
+        }
+
+        function filterHistory() {
+            const search = document.getElementById('searchBox').value.toLowerCase();
+            const rows = document.querySelectorAll('#historyTable tr');
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(search) ? '' : 'none';
+            });
+        }
+
+        // Admin Logs
+        function addLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logClass = type === 'error' ? 'error' : type === 'warning' ? 'warning' : '';
+            
+            const log = document.createElement('div');
+            log.className = `log-entry ${logClass}`;
+            log.textContent = `[${timestamp}] ${message}`;
+            
+            const container = document.getElementById('logContainer');
+            container.appendChild(log);
+            container.scrollTop = container.scrollHeight;
+
+            // Update system status
+            if (type === 'error') {
+                document.getElementById('systemStatus').textContent = 'Error';
+                document.getElementById('systemStatus').style.background = '#ef4444';
+            } else if (type === 'success') {
+                document.getElementById('systemStatus').textContent = 'Active';
+            }
+        }
+
+        function clearLogs() {
+            document.getElementById('logContainer').innerHTML = '<div class="log-entry">[SYSTEM] Logs cleared</div>';
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            addLog('[SYSTEM] SUNSTONE Dashboard initialized');
+            addLog(`[CONFIG] API Endpoint: ${CONFIG.apiEndpoint}`);
+            addLog(`[CONFIG] Model URL: ${CONFIG.modelUrl}`);
+            addLog('[SYSTEM] Ready to start session');
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', (e) => {
+            if (currentSession) {
+                e.preventDefault();
+                e.returnValue = 'Sesi masih aktif. Yakin ingin keluar?';
+            }
+        });
+    </script>
+</body>
+</html>
