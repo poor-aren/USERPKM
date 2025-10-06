@@ -3,511 +3,902 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sunstone PPOK Detection System</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>SUNSTONE - Lung Health Monitoring System</title>
     <style>
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        .status-open { color: #10b981; font-weight: bold; }
-        .status-closed { color: #6b7280; }
-        .risk-rendah { background: #dcfce7; color: #166534; padding: 4px 8px; border-radius: 4px; }
-        .risk-sedang { background: #fef3c7; color: #92400e; padding: 4px 8px; border-radius: 4px; }
-        .risk-tinggi { background: #fee2e2; color: #991b1b; padding: 4px 8px; border-radius: 4px; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 20px;
+        }
+
+        .logo-text h1 {
+            color: #764ba2;
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .logo-text p {
+            color: #666;
+            font-size: 12px;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 10px;
+        }
+
+        .nav-btn {
+            padding: 10px 25px;
+            background: #f0f0f0;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #666;
+            transition: all 0.3s;
+        }
+
+        .nav-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .nav-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Pages */
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        /* Dashboard Page */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .card-title {
+            color: #764ba2;
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #764ba2;
+        }
+
+        .status-widget {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .status-widget h3 {
+            font-size: 16px;
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
+
+        .status-widget .status-value {
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .device-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .device-item {
+            padding: 15px;
+            background: #f9fafb;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .device-status {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #10b981;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Session Page */
+        .session-header {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .patient-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .info-item {
+            padding: 10px;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+
+        .info-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .sensor-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .sensor-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .sensor-name {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .sensor-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #764ba2;
+        }
+
+        .mini-chart {
+            height: 50px;
+            margin-top: 10px;
+            background: linear-gradient(to top, rgba(102, 126, 234, 0.2), transparent);
+            border-radius: 4px;
+        }
+
+        .result-panel {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .result-category {
+            font-size: 48px;
+            font-weight: 700;
+            margin: 15px 0;
+        }
+
+        .result-confidence {
+            font-size: 24px;
+            opacity: 0.9;
+        }
+
+        /* History Table */
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .history-table th {
+            background: #f9fafb;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #764ba2;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .history-table td {
+            padding: 15px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .history-table tr:hover {
+            background: #f9fafb;
+        }
+
+        .badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-danger {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge-info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        /* Admin Monitoring */
+        .log-container {
+            background: #1f2937;
+            color: #10b981;
+            padding: 20px;
+            border-radius: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-left: 3px solid #10b981;
+            padding-left: 10px;
+        }
+
+        .log-entry.error {
+            border-left-color: #ef4444;
+            color: #ef4444;
+        }
+
+        .log-entry.warning {
+            border-left-color: #f59e0b;
+            color: #f59e0b;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #764ba2;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .search-box {
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            width: 300px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .sensor-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
-<body class="bg-gray-50">
-    <div class="min-h-screen">
-        <header class="bg-blue-600 text-white shadow-lg">
-            <div class="container mx-auto px-4 py-4">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
-                            <span class="text-blue-600 font-bold text-xl">S</span>
-                        </div>
-                        <div>
-                            <h1 class="text-2xl font-bold">Sunstone PPOK</h1>
-                            <p class="text-blue-100 text-sm">Sistem Deteksi Dini PPOK</p>
-                        </div>
-                    </div>
-                    <div id="connectionStatus" class="flex items-center space-x-2">
-                        <div class="w-3 h-3 bg-gray-300 rounded-full animate-pulse"></div>
-                        <span class="text-sm">Connecting...</span>
-                    </div>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo-section">
+                <div class="logo">S</div>
+                <div class="logo-text">
+                    <h1>SUNSTONE</h1>
+                    <p>Lung Health Monitoring System</p>
                 </div>
             </div>
-        </header>
-
-        <div class="bg-white shadow">
-            <div class="container mx-auto px-4">
-                <nav class="flex space-x-8">
-                    <button onclick="switchTab('session')" class="tab-btn py-4 px-2 border-b-2 border-blue-600 text-blue-600 font-medium">
-                        Sesi Baru
-                    </button>
-                    <button onclick="switchTab('result')" class="tab-btn py-4 px-2 border-b-2 border-transparent text-gray-500 hover:text-gray-700">
-                        Hasil Pemeriksaan
-                    </button>
-                    <button onclick="switchTab('history')" class="tab-btn py-4 px-2 border-b-2 border-transparent text-gray-500 hover:text-gray-700">
-                        Riwayat
-                    </button>
-                    <button onclick="switchTab('admin')" class="tab-btn py-4 px-2 border-b-2 border-transparent text-gray-500 hover:text-gray-700">
-                        Monitoring Admin
-                    </button>
-                </nav>
+            <div class="nav-tabs">
+                <button class="nav-btn active" onclick="showPage('dashboard')">Dashboard</button>
+                <button class="nav-btn" onclick="showPage('history')">Riwayat</button>
+                <button class="nav-btn" onclick="showPage('admin')">Admin</button>
             </div>
         </div>
 
-        <div class="container mx-auto px-4 py-8">
-            
-            <div id="tab-session" class="tab-content active">
-                <div class="max-w-2xl mx-auto">
-                    <div class="bg-white rounded-lg shadow-md p-8">
-                        <h2 class="text-2xl font-bold text-gray-800 mb-6">Buka Sesi Pemeriksaan Baru</h2>
-                        
-                        <form id="sessionForm" class="space-y-6">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Nama Pasien</label>
-                                <input type="text" id="patientName" required
-                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    placeholder="Masukkan nama lengkap">
-                            </div>
-                            
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Nomor HP</label>
-                                <input type="tel" id="patientPhone" required pattern="[0-9]{10,13}"
-                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    placeholder="08xxxxxxxxxx">
-                                <p class="mt-1 text-sm text-gray-500">Format: 10-13 digit angka</p>
-                            </div>
-                            
-                            <button type="submit" id="startSessionBtn"
-                                class="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition duration-200">
-                                Mulai Sesi
-                            </button>
-                        </form>
+        <!-- Dashboard Page -->
+        <div id="dashboard" class="page active">
+            <div class="dashboard-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Buat Sesi Baru</h2>
+                    </div>
+                    <form id="sessionForm" onsubmit="createSession(event)">
+                        <div class="form-group">
+                            <label>Nama Pasien</label>
+                            <input type="text" id="patientName" placeholder="Masukkan nama pasien" required>
+                        </div>
+                        <div class="form-group">
+                            <label>No. HP</label>
+                            <input type="tel" id="patientPhone" placeholder="08xxxxxxxxxx" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Device ID</label>
+                            <select id="deviceId" class="form-group input" style="width:100%; padding:12px; border:2px solid #e5e7eb; border-radius:8px;">
+                                <option value="ESP01">ESP01</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width:100%; margin-top:10px;">
+                            Mulai Sesi
+                        </button>
+                    </form>
+                </div>
 
-                        <div id="activeSessionInfo" class="mt-6 hidden">
-                            <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <p class="text-sm text-gray-600">Sesi Aktif</p>
-                                        <p class="font-semibold text-gray-800" id="activePatientName"></p>
-                                        <p class="text-sm text-gray-600" id="activePatientPhone"></p>
-                                    </div>
-                                    <button onclick="finishSession()" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">
-                                        Selesai
-                                    </button>
+                <div>
+                    <div class="status-widget">
+                        <h3>Status Sistem</h3>
+                        <div class="status-value" id="systemStatus">Ready</div>
+                    </div>
+
+                    <div class="card">
+                        <h3 class="card-title" style="margin-bottom:15px;">Device Aktif</h3>
+                        <div class="device-list">
+                            <div class="device-item">
+                                <div>
+                                    <strong>ESP01</strong>
+                                    <p style="font-size:12px; color:#666; margin-top:5px;">IoT Sensor Device</p>
                                 </div>
+                                <div class="device-status"></div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <div id="tab-result" class="tab-content">
-                <div class="max-w-4xl mx-auto">
-                    <div class="bg-white rounded-lg shadow-md p-8">
-                        <h2 class="text-2xl font-bold text-gray-800 mb-6">Hasil Pemeriksaan Real-time</h2>
-                        
-                        <div id="noActiveSession" class="text-center py-12">
-                            <svg class="w-24 h-24 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
-                            <p class="text-gray-500">Tidak ada sesi aktif. Silakan buka sesi baru terlebih dahulu.</p>
-                        </div>
-
-                        <div id="resultContainer" class="hidden">
-                            <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-6 mb-6">
-                                <div class="flex items-center justify-between mb-4">
-                                    <h3 class="text-lg font-semibold text-gray-800">Hasil Terbaru</h3>
-                                    <div class="flex items-center space-x-2">
-                                        <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                                        <span class="text-sm text-gray-600">Live</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <p class="text-sm text-gray-600 mb-1">Kategori Risiko</p>
-                                        <p id="latestCategory" class="text-2xl font-bold text-gray-800">-</p>
-                                    </div>
-                                    <div>
-                                        <p class="text-sm text-gray-600 mb-1">Confidence</p>
-                                        <p id="latestConfidence" class="text-2xl font-bold text-gray-800">-</p>
-                                    </div>
-                                </div>
-                                
-                                <div class="mt-4 grid grid-cols-4 gap-2 text-sm">
-                                    <div class="bg-white rounded p-2">
-                                        <p class="text-gray-500 text-xs">MG811</p>
-                                        <p class="font-semibold" id="sensor_mg811">-</p>
-                                    </div>
-                                    <div class="bg-white rounded p-2">
-                                        <p class="text-gray-500 text-xs">MQ7</p>
-                                        <p class="font-semibold" id="sensor_mq7">-</p>
-                                    </div>
-                                    <div class="bg-white rounded p-2">
-                                        <p class="text-gray-500 text-xs">MQ3</p>
-                                        <p class="font-semibold" id="sensor_mq3">-</p>
-                                    </div>
-                                    <div class="bg-white rounded p-2">
-                                        <p class="text-gray-500 text-xs">MQ135</p>
-                                        <p class="font-semibold" id="sensor_mq135">-</p>
-                                    </div>
-                                </div>
-                                
-                                <p class="text-xs text-gray-500 mt-3" id="latestTimestamp">Menunggu data...</p>
-                            </div>
-
-                            <button onclick="finishSession()" class="w-full bg-red-500 text-white py-3 rounded-lg hover:bg-red-600">
-                                Selesai Pemeriksaan
-                            </button>
-                        </div>
+        <!-- Session Monitoring Page -->
+        <div id="session" class="page">
+            <div class="session-header">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h2 class="card-title">Monitoring Sesi</h2>
+                    <div>
+                        <button class="btn btn-danger" onclick="finishSession()">Tutup Sesi</button>
                     </div>
+                </div>
+                <div class="patient-info" id="patientInfo">
+                    <!-- Patient info will be populated here -->
                 </div>
             </div>
 
-            <div id="tab-history" class="tab-content">
-                <div class="max-w-6xl mx-auto">
-                    <div class="bg-white rounded-lg shadow-md p-8">
-                        <div class="flex items-center justify-between mb-6">
-                            <h2 class="text-2xl font-bold text-gray-800">Riwayat Pemeriksaan</h2>
-                            <button onclick="loadHistory()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
-                                Refresh
-                            </button>
-                        </div>
-                        
-                        <div id="historyTable" class="overflow-x-auto">
-                            <table class="w-full">
-                                <thead class="bg-gray-50">
-                                    <tr>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">No. HP</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hasil</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Waktu Hasil</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="historyBody" class="divide-y divide-gray-200">
-                                    <tr><td colspan="7" class="px-6 py-4 text-center text-gray-500">Loading...</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
+            <div class="sensor-grid" id="sensorGrid">
+                <!-- Sensor cards will be populated here -->
             </div>
 
-            <div id="tab-admin" class="tab-content">
-                <div class="max-w-7xl mx-auto space-y-6">
-                    
-                    <div class="bg-white rounded-lg shadow-md p-6">
-                        <h3 class="text-lg font-bold text-gray-800 mb-4">Status Sistem</h3>
-                        <div class="grid grid-cols-4 gap-4">
-                            <div class="bg-blue-50 rounded-lg p-4">
-                                <p class="text-sm text-gray-600">API Status</p>
-                                <p id="adminApiStatus" class="text-xl font-bold text-blue-600">Checking...</p>
-                            </div>
-                            <div class="bg-green-50 rounded-lg p-4">
-                                <p class="text-sm text-gray-600">Lambda</p>
-                                <p id="adminLambdaStatus" class="text-xl font-bold text-green-600">Active</p>
-                            </div>
-                            <div class="bg-purple-50 rounded-lg p-4">
-                                <p class="text-sm text-gray-600">Total Sesi</p>
-                                <p id="adminTotalSessions" class="text-xl font-bold text-purple-600">0</p>
-                            </div>
-                            <div class="bg-orange-50 rounded-lg p-4">
-                                <p class="text-sm text-gray-600">Sesi Aktif</p>
-                                <p id="adminActiveSessions" class="text-xl font-bold text-orange-600">0</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bg-white rounded-lg shadow-md p-6">
-                        <h3 class="text-lg font-bold text-gray-800 mb-4">Data Sensor Terbaru (20 Data)</h3>
-                        <div id="adminSensorLog" class="space-y-2 max-h-96 overflow-y-auto">
-                            <p class="text-gray-500 text-sm">Belum ada data sensor...</p>
-                        </div>
-                    </div>
-
-                    <div class="bg-white rounded-lg shadow-md p-6">
-                        <h3 class="text-lg font-bold text-gray-800 mb-4">Hasil Inferensi Terbaru</h3>
-                        <div id="adminInferenceLog" class="space-y-2 max-h-96 overflow-y-auto">
-                            <p class="text-gray-500 text-sm">Belum ada hasil inferensi...</p>
-                        </div>
-                    </div>
-
+            <div id="resultPanel" style="display:none;">
+                <div class="result-panel">
+                    <h3>Hasil Analisis AI</h3>
+                    <div class="result-category" id="resultCategory">-</div>
+                    <div class="result-confidence" id="resultConfidence">Confidence: -</div>
+                    <p style="margin-top:20px; opacity:0.9;">Model: ONNX Runtime (Browser)</p>
                 </div>
             </div>
+        </div>
 
+        <!-- History Page -->
+        <div id="history" class="page">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Riwayat Pasien</h2>
+                    <button class="btn btn-primary" onclick="showPage('dashboard')">+ Sesi Baru</button>
+                </div>
+                <input type="text" class="search-box" id="searchBox" placeholder="Cari nama pasien..." onkeyup="filterHistory()">
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th>Tanggal</th>
+                            <th>Nama</th>
+                            <th>No HP</th>
+                            <th>Status</th>
+                            <th>Hasil</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTable">
+                        <tr>
+                            <td colspan="6" style="text-align:center; padding:40px; color:#666;">
+                                <div class="loading" style="margin:0 auto 10px;"></div>
+                                <div>Memuat data...</div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Admin Monitoring Page -->
+        <div id="admin" class="page">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">System Monitoring</h2>
+                    <button class="btn btn-success" onclick="clearLogs()">Clear Logs</button>
+                </div>
+                <div class="log-container" id="logContainer">
+                    <div class="log-entry">[SYSTEM] Monitoring started...</div>
+                </div>
+            </div>
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
     <script>
+        // Configuration
         const CONFIG = {
-            API_ENDPOINT: 'https://b0gtlz3zrj.execute-api.ap-southeast-1.amazonaws.com/prod',
+            apiEndpoint: 'https://dd23gtb2nc.execute-api.ap-southeast-1.amazonaws.com',
+            modelUrl: 'https://d1mw90se9yxe88.cloudfront.net/sunstone_model.onnx',
+            modelUrlBackup: 'https://sunstone-model-536697242709.s3.ap-southeast-1.amazonaws.com/sunstone_model.onnx',
+            pollInterval: 2000
         };
 
-        let currentSessionId = null;
-        let resultPollingInterval = null;
-        let adminPollingInterval = null;
+        // Global State
+        let currentSession = null;
+        let pollingInterval = null;
+        let onnxSession = null;
+        let sensorHistory = [];
 
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('border-blue-600', 'text-blue-600');
-                btn.classList.add('border-transparent', 'text-gray-500');
-            });
+        // Navigation
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             
-            document.getElementById(`tab-${tabName}`).classList.add('active');
-            event.target.classList.remove('border-transparent', 'text-gray-500');
-            event.target.classList.add('border-blue-600', 'text-blue-600');
-            
-            if (tabName === 'result') {
-                startResultPolling();
-            } else {
-                stopResultPolling();
-            }
-            
-            if (tabName === 'history') {
-                loadHistory();
-            }
-            
-            if (tabName === 'admin') {
-                startAdminMonitoring();
-            } else {
-                stopAdminMonitoring();
-            }
+            document.getElementById(pageId).classList.add('active');
+            event.target.classList.add('active');
+
+            if (pageId === 'history') loadHistory();
+            if (pageId === 'admin') addLog('[SYSTEM] Admin panel accessed');
         }
 
-        document.getElementById('sessionForm').addEventListener('submit', async (e) => {
+        // Create Session
+        async function createSession(e) {
             e.preventDefault();
             
             const name = document.getElementById('patientName').value;
             const phone = document.getElementById('patientPhone').value;
-            const btn = document.getElementById('startSessionBtn');
-            
-            btn.disabled = true;
-            btn.textContent = 'Membuat sesi...';
-            
+            const deviceId = document.getElementById('deviceId').value;
+
+            addLog(`[API] Creating session for ${name}...`);
+
             try {
-                const response = await fetch(`${CONFIG.API_ENDPOINT}/session`, {
+                const response = await fetch(`${CONFIG.apiEndpoint}/session`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, phone })
+                    body: JSON.stringify({ name, phone, device_id: deviceId })
                 });
-                
-                const data = await response.json();
-                
-                if (response.ok) {
-                    currentSessionId = data.sessionId;
-                    document.getElementById('activePatientName').textContent = name;
-                    document.getElementById('activePatientPhone').textContent = phone;
-                    document.getElementById('activeSessionInfo').classList.remove('hidden');
-                    document.getElementById('sessionForm').classList.add('hidden');
-                    
-                    alert('Sesi berhasil dibuka! Silakan gunakan alat ESP32.');
-                } else {
-                    alert('Gagal membuka sesi: ' + (data.error || 'Unknown error'));
-                }
-            } catch (error) {
-                alert('Error: ' + error.message);
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'Mulai Sesi';
-            }
-        });
 
-        async function finishSession() {
-            if (!currentSessionId) return;
-            
-            if (!confirm('Yakin ingin menutup sesi ini?')) return;
-            
-            try {
-                const encodedSessionId = encodeURIComponent(currentSessionId);
-                const response = await fetch(`${CONFIG.API_ENDPOINT}/session/${encodedSessionId}/finish`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'}
-                });
-                
                 const data = await response.json();
                 
-                if (response.ok) {
-                    alert('Sesi berhasil ditutup!');
-                    currentSessionId = null;
-                    document.getElementById('activeSessionInfo').classList.add('hidden');
-                    document.getElementById('sessionForm').classList.remove('hidden');
-                    document.getElementById('sessionForm').reset();
-                    stopResultPolling();
-                    loadHistory();
+                if (data.id) {
+                    currentSession = { ...data, name, phone, deviceId };
+                    addLog(`[SUCCESS] Session created: ${data.id}`, 'success');
+                    
+                    // Show session page
+                    showPage('session');
+                    displayPatientInfo();
+                    startPolling();
+                    loadModel();
                 } else {
-                    alert('Gagal: ' + (data.error || 'Unknown error'));
+                    addLog(`[ERROR] Failed to create session: ${JSON.stringify(data)}`, 'error');
+                    alert('Gagal membuat sesi. Cek log admin.');
                 }
             } catch (error) {
-                alert('Error: ' + error.message);
+                addLog(`[ERROR] Network error: ${error.message}`, 'error');
+                alert('Error koneksi ke server');
             }
+        }
+
+        // Display Patient Info
+        function displayPatientInfo() {
+            const html = `
+                <div class="info-item">
+                    <div class="info-label">Nama Pasien</div>
+                    <div class="info-value">${currentSession.name}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">No. HP</div>
+                    <div class="info-value">${currentSession.phone}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Session ID</div>
+                    <div class="info-value">${currentSession.id}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Device</div>
+                    <div class="info-value">${currentSession.deviceId}</div>
+                </div>
+            `;
+            document.getElementById('patientInfo').innerHTML = html;
+        }
+
+        // Load ONNX Model
+        async function loadModel() {
+            try {
+                addLog('[ML] Loading ONNX model...');
+                onnxSession = await ort.InferenceSession.create(CONFIG.modelUrl);
+                addLog('[ML] Model loaded successfully', 'success');
+            } catch (error) {
+                addLog(`[ML] Failed from CDN, trying backup...`, 'warning');
+                try {
+                    onnxSession = await ort.InferenceSession.create(CONFIG.modelUrlBackup);
+                    addLog('[ML] Model loaded from backup', 'success');
+                } catch (err) {
+                    addLog(`[ERROR] Model load failed: ${err.message}`, 'error');
+                }
+            }
+        }
+
+        // Start Polling
+        function startPolling() {
+            if (pollingInterval) clearInterval(pollingInterval);
+            
+            pollingInterval = setInterval(async () => {
+                if (!currentSession) return;
+
+                try {
+                    // Get latest sensor data
+                    const response = await fetch(
+                        `${CONFIG.apiEndpoint}/session/${currentSession.id}/sensors?limit=1`
+                    );
+                    const data = await response.json();
+
+                    if (data.sensors && data.sensors.length > 0) {
+                        const latest = data.sensors[0];
+                        updateSensorDisplay(latest.sensors);
+                        sensorHistory.push(latest);
+
+                        // Run inference if model loaded
+                        if (onnxSession && sensorHistory.length >= 3) {
+                            runInference(latest.sensors);
+                        }
+                    }
+                } catch (error) {
+                    addLog(`[ERROR] Polling failed: ${error.message}`, 'error');
+                }
+            }, CONFIG.pollInterval);
+
+            addLog('[SYSTEM] Polling started');
+        }
+
+        // Update Sensor Display
+        function updateSensorDisplay(sensors) {
+            const sensorNames = {
+                raw_mg811: 'CO2 (MG811)',
+                raw_mq7: 'CO (MQ7)',
+                raw_mq3: 'Alkohol (MQ3)',
+                raw_mq135: 'Gas (MQ135)'
+            };
+
+            let html = '';
+            for (const [key, value] of Object.entries(sensors)) {
+                html += `
+                    <div class="sensor-card">
+                        <div class="sensor-name">${sensorNames[key] || key}</div>
+                        <div class="sensor-value">${value}</div>
+                        <div class="mini-chart"></div>
+                    </div>
+                `;
+            }
+            document.getElementById('sensorGrid').innerHTML = html;
+        }
+
+        // Run ML Inference
+        async function runInference(sensors) {
+            try {
+                addLog('[ML] Running inference...');
+
+                // Prepare input tensor [raw_mg811, raw_mq7, raw_mq3, raw_mq135]
+                const inputData = new Float32Array([
+                    sensors.raw_mg811,
+                    sensors.raw_mq7,
+                    sensors.raw_mq3,
+                    sensors.raw_mq135
+                ]);
+
+                const tensor = new ort.Tensor('float32', inputData, [1, 4]);
+                const feeds = { float_input: tensor };
+                
+                const results = await onnxSession.run(feeds);
+                const output = results.output.data;
+
+                // Get prediction
+                const maxIndex = output.indexOf(Math.max(...output));
+                const categories = ['Rendah', 'Sedang', 'Tinggi'];
+                const category = categories[maxIndex];
+                const confidence = (output[maxIndex] * 100).toFixed(2);
+
+                addLog(`[ML] Prediction: ${category} (${confidence}%)`, 'success');
+
+                // Display result
+                document.getElementById('resultCategory').textContent = category;
+                document.getElementById('resultConfidence').textContent = `Confidence: ${confidence}%`;
+                document.getElementById('resultPanel').style.display = 'block';
+
+                // Send result to backend
+                await fetch(`${CONFIG.apiEndpoint}/session/${currentSession.id}/result`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        category,
+                        confidence: parseFloat(confidence),
+                        sensor_values: [sensors.raw_mg811, sensors.raw_mq7, sensors.raw_mq3, sensors.raw_mq135],
+                        timestamp: new Date().toISOString(),
+                        device_id: currentSession.deviceId
+                    })
+                });
+
+                addLog('[API] Result sent to backend', 'success');
+
+            } catch (error) {
+                addLog(`[ERROR] Inference failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Finish Session
+        async function finishSession() {
+            if (!currentSession) return;
+            
+            if (!confirm('Tutup sesi ini?')) return;
+
+            try {
+                addLog('[API] Closing session...');
+                
+                await fetch(`${CONFIG.apiEndpoint}/session/${currentSession.id}/finish`, {
+                    method: 'POST'
+                });
+
+                addLog('[SUCCESS] Session closed', 'success');
+                
+                clearInterval(pollingInterval);
+                currentSession = null;
+                sensorHistory = [];
+                
+                showPage('dashboard');
+                document.getElementById('sessionForm').reset();
+                
+            } catch (error) {
+                addLog(`[ERROR] Failed to close session: ${error.message}`, 'error');
+            }
+        }
+
+        // Load History
+        async function loadHistory() {
+            try {
+                const response = await fetch(`${CONFIG.apiEndpoint}/history`);
+                const data = await response.json();
+
+                const tbody = document.getElementById('historyTable');
+                
+                if (data.history && data.history.length > 0) {
+                    tbody.innerHTML = data.history.map(h => `
+                        <tr>
+                            <td>${new Date(h.sessionStart || Date.now()).toLocaleString('id-ID')}</td>
+                            <td>${h.name}</td>
+                            <td>${h.phone}</td>
+                            <td>
+                                <span class="badge ${h.status === 'OPEN' ? 'badge-info' : 'badge-success'}">
+                                    ${h.status}
+                                </span>
+                            </td>
+                            <td>
+                                ${h.lastResultCategory ? 
+                                    `<span class="badge badge-${getBadgeClass(h.lastResultCategory)}">
+                                        ${h.lastResultCategory}
+                                    </span>` : '-'}
+                            </td>
+                            <td>
+                                ${h.status === 'OPEN' ? 
+                                    `<button class="btn btn-danger btn-sm" onclick="closeSessionFromHistory('${h.id}')">Tutup</button>` :
+                                    `<button class="btn btn-success btn-sm" onclick="viewDetails('${h.id}')">Detail</button>`
+                                }
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:40px; color:#666;">Belum ada data</td></tr>';
+                }
+
+                addLog(`[API] Loaded ${data.history?.length || 0} history records`);
+            } catch (error) {
+                addLog(`[ERROR] Failed to load history: ${error.message}`, 'error');
+            }
+        }
+
+        function getBadgeClass(category) {
+            if (category === 'Tinggi') return 'danger';
+            if (category === 'Sedang') return 'warning';
+            return 'success';
         }
 
         async function closeSessionFromHistory(sessionId) {
             if (!confirm('Tutup sesi ini?')) return;
-            
+
             try {
-                const encodedSessionId = encodeURIComponent(sessionId);
-                const response = await fetch(`${CONFIG.API_ENDPOINT}/session/${encodedSessionId}/finish`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'}
+                await fetch(`${CONFIG.apiEndpoint}/session/${sessionId}/finish`, {
+                    method: 'POST'
                 });
-                
-                if (response.ok) {
-                    alert('Sesi berhasil ditutup!');
-                    loadHistory();
-                } else {
-                    const data = await response.json();
-                    alert('Gagal: ' + (data.error || 'Unknown error'));
-                }
+                addLog(`[API] Session ${sessionId} closed from history`, 'success');
+                loadHistory();
             } catch (error) {
-                alert('Error: ' + error.message);
+                addLog(`[ERROR] Failed to close: ${error.message}`, 'error');
             }
         }
 
-        function startResultPolling() {
-            if (!currentSessionId) {
-                document.getElementById('noActiveSession').classList.remove('hidden');
-                document.getElementById('resultContainer').classList.add('hidden');
-                return;
-            }
+        function viewDetails(sessionId) {
+            alert(`Detail untuk session: ${sessionId}\n\nFitur ini akan menampilkan grafik lengkap dan laporan PDF.`);
+        }
+
+        function filterHistory() {
+            const search = document.getElementById('searchBox').value.toLowerCase();
+            const rows = document.querySelectorAll('#historyTable tr');
             
-            document.getElementById('noActiveSession').classList.add('hidden');
-            document.getElementById('resultContainer').classList.remove('hidden');
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(search) ? '' : 'none';
+            });
+        }
+
+        // Admin Logs
+        function addLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logClass = type === 'error' ? 'error' : type === 'warning' ? 'warning' : '';
             
-            pollLatestResult();
-            resultPollingInterval = setInterval(pollLatestResult, 2000);
-        }
-
-        function stopResultPolling() {
-            if (resultPollingInterval) {
-                clearInterval(resultPollingInterval);
-                resultPollingInterval = null;
-            }
-        }
-
-        async function pollLatestResult() {
-            if (!currentSessionId) return;
+            const log = document.createElement('div');
+            log.className = `log-entry ${logClass}`;
+            log.textContent = `[${timestamp}] ${message}`;
             
-            try {
-                const encodedSessionId = encodeURIComponent(currentSessionId);
-                const response = await fetch(`${CONFIG.API_ENDPOINT}/session/${encodedSessionId}/latest`);
-                const data = await response.json();
-                
-                if (data && data.category) {
-                    document.getElementById('latestCategory').textContent = data.category;
-                    document.getElementById('latestConfidence').textContent = (data.confidence * 100).toFixed(1) + '%';
-                    document.getElementById('latestTimestamp').textContent = new Date(data.timestamp).toLocaleString('id-ID');
-                    
-                    if (data.sensor_values && data.sensor_values.length === 4) {
-                        document.getElementById('sensor_mg811').textContent = data.sensor_values[0];
-                        document.getElementById('sensor_mq7').textContent = data.sensor_values[1];
-                        document.getElementById('sensor_mq3').textContent = data.sensor_values[2];
-                        document.getElementById('sensor_mq135').textContent = data.sensor_values[3];
-                    }
-                }
-            } catch (error) {
-                console.error('Polling error:', error);
-            }
-        }
-
-        async function loadHistory() {
-            const tbody = document.getElementById('historyBody');
-            tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-4 text-center text-gray-500">Loading...</td></tr>';
-            
-            try {
-                const response = await fetch(`${CONFIG.API_ENDPOINT}/sessions`);
-                const sessions = await response.json();
-                
-                if (sessions.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-4 text-center text-gray-500">Belum ada data</td></tr>';
-                    return;
-                }
-                
-                tbody.innerHTML = sessions.map(session => `
-                    <tr>
-                        <td class="px-6 py-4 text-sm">${new Date(session.createdAt).toLocaleString('id-ID')}</td>
-                        <td class="px-6 py-4 text-sm font-medium">${session.name}</td>
-                        <td class="px-6 py-4 text-sm">${session.phone}</td>
-                        <td class="px-6 py-4 text-sm">
-                            <span class="status-${session.status.toLowerCase()}">${session.status}</span>
-                        </td>
-                        <td class="px-6 py-4 text-sm">
-                            ${session.lastResultCategory ? 
-                                `<span class="risk-${session.lastResultCategory.toLowerCase()}">${session.lastResultCategory}</span>` : 
-                                '-'}
-                        </td>
-                        <td class="px-6 py-4 text-sm">${session.lastResultTimestamp ? new Date(session.lastResultTimestamp).toLocaleString('id-ID') : '-'}</td>
-                        <td class="px-6 py-4 text-sm">
-                            ${session.status === 'OPEN' ? 
-                                `<button onclick="closeSessionFromHistory('${session.PK}')" class="bg-red-500 text-white px-3 py-1 rounded text-xs hover:bg-red-600">Tutup</button>` : 
-                                '-'}
-                        </td>
-                    </tr>
-                `).join('');
-            } catch (error) {
-                tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-4 text-center text-red-500">Error loading data</td></tr>';
-            }
-        }
-
-        function startAdminMonitoring() {
-            checkSystemStatus();
-            adminPollingInterval = setInterval(checkSystemStatus, 10000);
-        }
-
-        function stopAdminMonitoring() {
-            if (adminPollingInterval) {
-                clearInterval(adminPollingInterval);
-                adminPollingInterval = null;
-            }
-        }
-
-        async function checkSystemStatus() {
-            try {
-                const response = await fetch(`${CONFIG.API_ENDPOINT}/ping`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ping: true })
-                });
-                
-                if (response.ok) {
-                    document.getElementById('adminApiStatus').textContent = 'Online';
-                    document.getElementById('adminApiStatus').className = 'text-xl font-bold text-green-600';
-                } else {
-                    document.getElementById('adminApiStatus').textContent = 'Error';
-                    document.getElementById('adminApiStatus').className = 'text-xl font-bold text-red-600';
-                }
-                
-                const sessionsResp = await fetch(`${CONFIG.API_ENDPOINT}/sessions`);
-                const sessions = await sessionsResp.json();
-                document.getElementById('adminTotalSessions').textContent = sessions.length;
-                document.getElementById('adminActiveSessions').textContent = sessions.filter(s => s.status === 'OPEN').length;
-                
-            } catch (error) {
-                document.getElementById('adminApiStatus').textContent = 'Offline';
-                document.getElementById('adminApiStatus').className = 'text-xl font-bold text-red-600';
-            }
-        }
-
-        window.addEventListener('load', () => {
-            document.getElementById('connectionStatus').innerHTML = `
-                <div class="w-3 h-3 bg-green-500 rounded-full"></div>
-                <span class="text-sm">Connected</span>
-            `;
-            
-            setInterval(() => {
-                fetch(`${CONFIG.API_ENDPOINT}/ping`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ping: true })
-                }).catch(() => {});
-            }, 9 * 60 * 1000);
-        });
-    </script>
-</body>
-</html>
+            const container = document.getElementById('logContainer');
+            container.appendChild(log);
